@@ -34,7 +34,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         """
         gamelib.debug_write('Configuring your custom algo strategy...')
         self.config = config
-        global WALL, FACTORY, TURRET, SCOUT, DEMOLISHER, INTERCEPTOR, MP, SP
+        global WALL, FACTORY, TURRET, SCOUT, DEMOLISHER, INTERCEPTOR, MP, SP, BORDER_LENGTH
         WALL = config["unitInformation"][0]["shorthand"]
         FACTORY = config["unitInformation"][1]["shorthand"]
         TURRET = config["unitInformation"][2]["shorthand"]
@@ -43,6 +43,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         INTERCEPTOR = config["unitInformation"][5]["shorthand"]
         MP = 1
         SP = 0
+        BORDER_LENGTH = 28
         # This is a good place to do initial setup
         self.scored_on_locations = []
 
@@ -81,13 +82,14 @@ class AlgoStrategy(gamelib.AlgoCore):
         #self.i_dont_think_so(game_state)
         #dirty play time
         
-        if (game_state.turn_number > 3 and (game_state.contains_stationary_unit([26,14]) and game_state.contains_stationary_unit([26,15])) and game_state.contains_stationary_unit([25,14])) or self.cannon:
+        if (game_state.turn_number > 3 and (game_state.contains_stationary_unit([25,13]) ///
+        and game_state.contains_stationary_unit([25,14]) and AlgoStrategy.opponent_walls(game_state) > BORDER_LENGTH-3)) or self.cannon:
             #self.bunker_bust(game_state)
             self.cannon = True
             self.build_defences(game_state)
             if  game_state.get_resource(1,0) >40:
-                self.prep_cannon(game_state)
-                self.fire_cannon(game_state)
+                #self.prep_cannon(game_state)
+                #self.fire_cannon(game_state)
 
                  
 
@@ -133,9 +135,17 @@ class AlgoStrategy(gamelib.AlgoCore):
             if game_state.turn_number % 3:
                 game_state.attempt_spawn(SCOUT, scout_spawn_location_options, 1000)
 
+    #count the number of stationary units in row with y coordinate 14. This is the enemy's border.
+    def opponent_walls(self,game_state):
+        count = 0
+        for x in range(0,27):
+            if game_state.contains_stationary_unit([x,14]):
+                count+=1
+
+        return count
 
     #To avoid spaghetti code that's impossible to maintain, here is a parser. Any time you want to build something, 
-    #Run it by the parser to make sure 1 part of the code isn't interfering with another part's strategy
+    #Run it by the parser to make sure 1 part of the code isn't interfering with another part's strateg
     def build_parsed(self,game_state,building_list):
         if self.cannon:
             for item in building_list:
@@ -236,8 +246,9 @@ class AlgoStrategy(gamelib.AlgoCore):
         game_state.attempt_spawn(FACTORY, factory_locations)       
 
     def spawn_then_upgrade(self,game_state,coord, build):
-        game_state.attempt_spawn(build,coord)
-        game_state.attempt_upgrade(coord)
+        if(game_state.attempt_spawn(build,coord) | game_state.attempt_upgrade(coord)):
+            return True
+
 
     def build_defences(self, game_state):
         """
@@ -248,17 +259,30 @@ class AlgoStrategy(gamelib.AlgoCore):
         # More community tools available at: https://terminal.c1games.com/rules#Download
 
         # Place turrets that attack enemy units
-        friendly_edges = game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT)
-        for coord in friendly_edges:
-            for unit in game_state.game_map[coord]:
-                if unit.unit_type == WALL and unit.health < 35:
-                    game_state.attempt_upgrade(coord)
+        #friendly_edges = game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_LEFT) + game_state.game_map.get_edge_locations(game_state.game_map.BOTTOM_RIGHT)
+        #for coord in friendly_edges:
+        #    for unit in game_state.game_map[coord]:
+        #        if unit.unit_type == WALL and unit.health < 35:
+        #            game_state.attempt_upgrade(coord)
 
 
+        #starter turrent defense
 
         turret_locations = [[5, 11], [22, 11], [11,11],[15,11]]
         for location in turret_locations:
             AlgoStrategy.spawn_then_upgrade(self,game_state, location,TURRET)
+
+
+        factory_locations = [[13,2],[14,2],[13,3],[14,3],[13,4],[14,4],[13,5],[14,5],[13,6],[14,6],[13,7],[14,7],[12,7],[11,7],[11,6],[15,7],[15,6],[15,5]]
+        idx = 0
+        while(game_state.get_resource(SP) > 12 and idx < len(factory_locations)):
+
+            if(AlgoStrategy.spawn_then_upgrade(self,game_state, factory_locations[idx],FACTORY)):
+                break
+            idx+=1
+
+
+
 
         secondary_wall_locations = [[0,13],[27,13],[1,12],[26,12],[2,11],[25,11],[3,11],[24,11],[4,11],[23,11]]
         game_state.attempt_spawn(WALL,secondary_wall_locations)
