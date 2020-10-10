@@ -82,12 +82,11 @@ class AlgoStrategy(gamelib.AlgoCore):
         #self.i_dont_think_so(game_state)
         #dirty play time
         
-        if (game_state.turn_number > 3 and (game_state.contains_stationary_unit([25,13]) ///
-        and game_state.contains_stationary_unit([25,14]) and AlgoStrategy.opponent_walls(game_state) > BORDER_LENGTH-3)) or self.cannon:
+        if (game_state.turn_number > 3 and (game_state.contains_stationary_unit([25,13]) and game_state.contains_stationary_unit([25,14]) and AlgoStrategy.opponent_walls(game_state) > BORDER_LENGTH-3)) or self.cannon:
             #self.bunker_bust(game_state)
             self.cannon = True
             self.build_defences(game_state)
-            if  game_state.get_resource(1,0) >40:
+            #if  game_state.get_resource(1,0) >40:
                 #self.prep_cannon(game_state)
                 #self.fire_cannon(game_state)
 
